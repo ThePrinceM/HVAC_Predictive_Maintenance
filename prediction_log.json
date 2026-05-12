@@ -1,0 +1,46 @@
+[
+  {
+    "event_id": "pred_1778431210722_135",
+    "timestamp": "2026-05-10T22:10:10.722272",
+    "predicted_class": "Refrigerant_Leak",
+    "confidence": 0.6628,
+    "input_features": {
+      "return_temp_C": 24.1,
+      "supply_temp_C": 27.15,
+      "outdoor_temp_C": 35.8,
+      "suction_pressure_psi": 48.5,
+      "discharge_pressure_psi": 131.0,
+      "compressor_current_A": 19.7,
+      "fan_speed_RPM": 1197.25,
+      "vibration_mm_s": 0.67,
+      "unit_age": 7.5,
+      "refrigerant_pressure_psi": 143.7,
+      "filter_health": 0.75,
+      "airflow_rate": 3.75,
+      "damper_position_%": 25.95
+    },
+    "model_version": "v1"
+  },
+  {
+    "event_id": "pred_1778436256792_484",
+    "timestamp": "2026-05-10T23:34:16.792851",
+    "predicted_class": "Normal",
+    "confidence": 0.4873,
+    "input_features": {
+      "return_temp_C": 27.5,
+      "supply_temp_C": 17.5,
+      "outdoor_temp_C": 32.5,
+      "suction_pressure_psi": 60.0,
+      "discharge_pressure_psi": 225.0,
+      "compressor_current_A": 17.5,
+      "fan_speed_RPM": 1500.0,
+      "vibration_mm_s": 2.5,
+      "unit_age": 12.5,
+      "refrigerant_pressure_psi": 165.0,
+      "filter_health": 0.5,
+      "airflow_rate": 5.5,
+      "damper_position_%": 50.0
+    },
+    "model_version": "v1"
+  }
+]
