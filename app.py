@@ -1255,7 +1255,7 @@ def render_floating_chat():
       50%      {{ box-shadow: 0 4px 20px rgba(59,158,255,.4), 0 0 0 9px rgba(59,158,255,0); }}
     }}
     #hvac-fab {{
-      position:fixed; bottom:26px; right:26px; z-index:99999;
+      position:fixed; bottom:50px; right:50px; z-index:99999;
       width:56px; height:56px; border-radius:50%;
       background:linear-gradient(135deg,#1565c0,#3b9eff);
       border:2px solid #5ab0ff;
