@@ -1173,70 +1173,11 @@ with st.container():
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Floating AI Chat Bubble ─────────────────────────────────────────────────
-def _start_chat_server():
-    """Start a lightweight HTTP server for the chat API (once per session)."""
-    if "fab_chat_port" in st.session_state:
-        return st.session_state.fab_chat_port
-
-    import threading, json
-    from http.server import HTTPServer, BaseHTTPRequestHandler
-    from utils.grok_client import stream_chat_response
-
-    class _ChatHandler(BaseHTTPRequestHandler):
-        def do_POST(self):
-            try:
-                body = json.loads(self.rfile.read(
-                    int(self.headers.get("Content-Length", 0))))
-                msgs = body.get("messages", [])
-                reply = ""
-                for chunk in stream_chat_response(msgs):
-                    reply += chunk
-                self._respond(200, {"reply": reply})
-            except Exception as e:
-                self._respond(500, {"reply": f"⚠️ Error: {e}"})
-
-        def do_OPTIONS(self):
-            self.send_response(200)
-            for k, v in self._cors().items():
-                self.send_header(k, v)
-            self.end_headers()
-
-        def _respond(self, code, obj):
-            payload = json.dumps(obj).encode()
-            self.send_response(code)
-            self.send_header("Content-Type", "application/json")
-            for k, v in self._cors().items():
-                self.send_header(k, v)
-            self.end_headers()
-            self.wfile.write(payload)
-
-        @staticmethod
-        def _cors():
-            return {
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "POST, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type",
-            }
-
-        def log_message(self, *_):
-            pass  # suppress console noise
-
-    srv = HTTPServer(("127.0.0.1", 0), _ChatHandler)
-    port = srv.server_address[1]
-    st.session_state.fab_chat_port = port
-    threading.Thread(target=srv.serve_forever, daemon=True).start()
-    return port
-
-
 def render_floating_chat():
     """Render the floating AI assistant bubble available on every page."""
-    from utils.grok_client import build_sensor_context
+    from utils.grok_client import build_sensor_context, SYSTEM_PROMPT
     import streamlit.components.v1 as components
 
-    # ── Start background chat API server (once) ─────────
-    chat_port = _start_chat_server()
-
-    # ── Sensor context for first message ────────────────
     pred    = st.session_state.get("last_prediction",
               {"predicted_class": "Normal", "confidence": 0.0, "probabilities": {}})
     reading = st.session_state.get("last_reading", {})
@@ -1246,6 +1187,19 @@ def render_floating_chat():
     predicted_class = pred.get("predicted_class", "Normal")
     confidence      = int(pred.get("confidence", 0.0) * 100)
     sensor_ctx      = build_sensor_context(reading, pred).replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$")
+
+    # Get API credentials for direct browser-side calls
+    api_key = os.getenv("GROK_API_KEY", "")
+    api_url = os.getenv("GROK_BASE_URL", "https://api.x.ai/v1")
+    api_model = os.getenv("GROK_MODEL", "grok-3")
+    if not api_key:
+        try:
+            api_key = st.secrets.get("GROK_API_KEY", "")
+            api_url = st.secrets.get("GROK_BASE_URL", api_url)
+            api_model = st.secrets.get("GROK_MODEL", api_model)
+        except Exception:
+            pass
+    sys_prompt = SYSTEM_PROMPT.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$").replace("\n", "\\n")
 
     # ── Inject CSS + HTML via st.markdown ───────────────
     st.markdown(f"""
@@ -1373,12 +1327,15 @@ def render_floating_chat():
     </div>
     """, unsafe_allow_html=True)
 
-    # ── JS via invisible iframe — calls background HTTP server, NO page reload ──
+    # ── JS — calls Groq API directly from browser (works on Cloud!) ──
     components.html(f"""
     <script>
     const D = window.parent.document;
-    const CHAT_PORT = {chat_port};
     const SENSOR_CTX = `{sensor_ctx}`;
+    const API_KEY = `{api_key}`;
+    const API_URL = `{api_url}`;
+    const API_MODEL = `{api_model}`;
+    const SYS_PROMPT = `{sys_prompt}`;
     let chatHistory = [];
     let sending = false;
 
@@ -1443,11 +1400,9 @@ def render_floating_chat():
       inp.value = '';
       sending = true;
 
-      // 1. Show user bubble instantly
       addBubble('user-msg', val);
       chatHistory.push({{role:'user', content: val}});
 
-      // 2. Show typing indicator
       const m = D.getElementById('hvac-msgs');
       const typing = D.createElement('div');
       typing.className = 'fab-typing';
@@ -1457,7 +1412,6 @@ def render_floating_chat():
         + '<div class="fab-typing-dot"></div>';
       if (m) {{ m.appendChild(typing); scrollMsgs(); }}
 
-      // 3. Build API messages (add sensor context to first message)
       const apiMsgs = chatHistory.map((msg, i) => {{
         if (i === 0 && msg.role === 'user') {{
           return {{role:'user', content: 'Context: ' + SENSOR_CTX + '\\n\\nQuestion: ' + msg.content}};
@@ -1465,18 +1419,40 @@ def render_floating_chat():
         return msg;
       }});
 
-      // 4. Call background chat server — NO page reload!
+      if (!API_KEY) {{
+        const t = D.getElementById('hvac-typing');
+        if (t) t.remove();
+        addBubble('bot-msg', '⚠️ API key not configured. Add GROK_API_KEY to your .env or Streamlit secrets.');
+        sending = false;
+        return;
+      }}
+
       try {{
-        const resp = await fetch('http://127.0.0.1:' + CHAT_PORT, {{
+        const resp = await fetch(API_URL + '/chat/completions', {{
           method: 'POST',
-          headers: {{'Content-Type': 'application/json'}},
-          body: JSON.stringify({{messages: apiMsgs}})
+          headers: {{
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + API_KEY
+          }},
+          body: JSON.stringify({{
+            model: API_MODEL,
+            messages: [{{role:'system', content: SYS_PROMPT}}, ...apiMsgs],
+            max_tokens: 600,
+            temperature: 0.4
+          }})
         }});
         const data = await resp.json();
         const t = D.getElementById('hvac-typing');
         if (t) t.remove();
-        addBubble('bot-msg', data.reply);
-        chatHistory.push({{role:'assistant', content: data.reply}});
+        if (data.choices && data.choices[0]) {{
+          const reply = data.choices[0].message.content;
+          addBubble('bot-msg', reply);
+          chatHistory.push({{role:'assistant', content: reply}});
+        }} else if (data.error) {{
+          addBubble('bot-msg', '⚠️ ' + (data.error.message || 'API error'));
+        }} else {{
+          addBubble('bot-msg', '⚠️ Unexpected response from API.');
+        }}
       }} catch(e) {{
         const t = D.getElementById('hvac-typing');
         if (t) t.remove();
@@ -1492,5 +1468,4 @@ def render_floating_chat():
 
 
 render_floating_chat()
-
 

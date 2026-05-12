@@ -7,9 +7,21 @@ import json
 import requests
 from typing import Iterator
 
-GROK_BASE_URL = os.getenv("GROK_BASE_URL", "https://api.x.ai/v1")
-GROK_MODEL    = os.getenv("GROK_MODEL", "grok-3")
-GROK_API_KEY  = os.getenv("GROK_API_KEY", "")
+def _get_secret(key, default=""):
+    """Get secret from env var or Streamlit Cloud secrets."""
+    val = os.getenv(key, "")
+    if val:
+        return val
+    try:
+        import streamlit as st
+        return st.secrets.get(key, default)
+    except Exception:
+        return default
+
+GROK_BASE_URL = _get_secret("GROK_BASE_URL", "https://api.x.ai/v1")
+GROK_MODEL    = _get_secret("GROK_MODEL", "grok-3")
+GROK_API_KEY  = _get_secret("GROK_API_KEY", "")
+
 
 SYSTEM_PROMPT = """You are an expert HVAC predictive maintenance engineer with deep knowledge 
 of Rooftop Units (RTUs). You analyze real-time sensor data and AI fault predictions to provide 
@@ -37,9 +49,9 @@ def get_initial_insight(reading: dict, prediction: dict) -> str:
     Generate the opening real-time insight paragraph (non-streaming, for speed).
     Returns full text string.
     """
-    api_key = os.getenv("GROK_API_KEY", "")
-    base_url = os.getenv("GROK_BASE_URL", "https://api.x.ai/v1")
-    model_name = os.getenv("GROK_MODEL", "grok-3")
+    api_key = _get_secret("GROK_API_KEY", "")
+    base_url = _get_secret("GROK_BASE_URL", "https://api.x.ai/v1")
+    model_name = _get_secret("GROK_MODEL", "grok-3")
 
     if not api_key:
         return "⚠️ Grok API key not configured. Add GROK_API_KEY to your .env file."
@@ -82,9 +94,9 @@ def stream_chat_response(messages: list) -> Iterator[str]:
     Stream a chat response from Grok given a full conversation history.
     Yields text chunks as they arrive (SSE streaming).
     """
-    api_key = os.getenv("GROK_API_KEY", "")
-    base_url = os.getenv("GROK_BASE_URL", "https://api.x.ai/v1")
-    model_name = os.getenv("GROK_MODEL", "grok-3")
+    api_key = _get_secret("GROK_API_KEY", "")
+    base_url = _get_secret("GROK_BASE_URL", "https://api.x.ai/v1")
+    model_name = _get_secret("GROK_MODEL", "grok-3")
 
     if not api_key:
         yield "⚠️ Grok API key not configured."
