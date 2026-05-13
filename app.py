@@ -459,7 +459,7 @@ section[data-testid="stSidebar"] + div { margin-left: 0 !important; padding-left
   color:#fff;font:italic 25px Georgia,serif;box-shadow:0 0 0 2px #2d51ca inset,0 0 8px rgba(90,126,255,.7);
 }
 .sidebar-meta {padding:16px 20px 0;}
-.sidebar-unit {width:150px;margin:18px auto 14px;display:block;filter:drop-shadow(0 10px 14px rgba(0,0,0,.45));}
+.sidebar-unit {width:200px;margin:18px auto 14px;display:block;filter:drop-shadow(0 10px 14px rgba(0,0,0,.45));}
 .site-meta-label {font:700 12px 'DM Sans',sans-serif;color:white !important;margin:12px 0 3px !important;}
 .site-meta-value {font:500 13px 'DM Sans',sans-serif;color:#5da1ff !important;margin:0 0 13px !important;}
 .dashboard-shell {font-family:'DM Sans',sans-serif;color:var(--hvac-text);max-width:100%;margin:0 auto;}
