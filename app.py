@@ -15,177 +15,160 @@ sys.path.insert(0, ROOT)
 st.set_page_config(page_title="HVAC Fault Detection System", page_icon="🔧", layout="wide", initial_sidebar_state="expanded")
 
 # ── Video Intro Splash Screen ───────────────────────────────────────────────
-import streamlit.components.v1 as components
+if "intro_played" not in st.session_state:
+    st.session_state.intro_played = False
 
-# ── Video Intro Splash Screen ───────────────────────────────────────────────
-import streamlit.components.v1 as components
-
-st.markdown("""
-<style>
-  @keyframes introFadeBounce {
-    0%, 100% { opacity: 0.5; } 50% { opacity: 1; }
-  }
-  @keyframes introArrowDrop {
-    0% { transform: rotate(45deg) translateY(-4px); opacity: 0; }
-    60% { opacity: 1; }
-    100% { transform: rotate(45deg) translateY(4px); opacity: 0; }
-  }
-  #hvac-intro-overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background: #07131f;
-    z-index: 999999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    transition: opacity 0.6s ease, visibility 0.6s ease;
-    overflow: hidden;
-  }
-  #hvac-intro-overlay.dismissed {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
-  #hvac-intro-video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    position: absolute;
-    top: 0; left: 0;
-  }
-  #hvac-scroll-hint {
-    position: absolute;
-    bottom: 36px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: rgba(255,255,255,0.7);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    animation: introFadeBounce 2s ease-in-out infinite;
-    z-index: 2;
-  }
-  .intro-scroll-arrow {
-    width: 20px; height: 20px;
-    border-right: 2px solid rgba(255,255,255,0.6);
-    border-bottom: 2px solid rgba(255,255,255,0.6);
-    transform: rotate(45deg);
-    animation: introArrowDrop 1.4s ease-in-out infinite;
-  }
-  #hvac-skip-btn {
-    position: absolute;
-    top: 24px; right: 32px;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.25);
-    color: white;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    padding: 7px 18px;
-    border-radius: 20px;
-    cursor: pointer;
-    z-index: 3;
-    transition: background 0.2s;
-  }
-  #hvac-skip-btn:hover { background: rgba(255,255,255,0.22); }
-</style>
-
-<div id="hvac-intro-overlay">
-  <video
-    id="hvac-intro-video"
-    src="app/static/3dimage.mp4"
-    autoplay
-    muted
-    playsinline
-    preload="auto"
-  ></video>
-
-  <div id="hvac-scroll-hint">
-    <span>Scroll to enter</span>
-    <div class="intro-scroll-arrow"></div>
-  </div>
-
-  <button id="hvac-skip-btn">Skip ›</button>
-</div>
-""", unsafe_allow_html=True)
-
-components.html("""
-<script>
-(function() {
-  const STORAGE_KEY = 'hvac_intro_shown';
-  
-  // If already shown this session, hide immediately if we can find it
-  if (sessionStorage.getItem(STORAGE_KEY)) {
-    try {
-      const overlay = window.parent.document.getElementById('hvac-intro-overlay');
-      if (overlay) overlay.style.display = 'none';
-    } catch(e) {}
-  }
-
-  function initIntro() {
-    try {
-      const D = window.parent.document;
-      const overlay = D.getElementById('hvac-intro-overlay');
-      if (!overlay) return; // Wait for it to render
-      
-      // Stop the interval once found
-      clearInterval(checkInterval);
-
-      if (sessionStorage.getItem(STORAGE_KEY)) {
-        overlay.style.display = 'none';
-        return;
+if not st.session_state.intro_played:
+    import streamlit.components.v1 as components
+    
+    st.markdown("""
+    <style>
+      @keyframes introFadeBounce {
+        0%, 100% { opacity: 0.5; } 50% { opacity: 1; }
       }
-
-      function dismiss() {
-        if (overlay.classList.contains('dismissed')) return;
-        overlay.classList.add('dismissed');
-        sessionStorage.setItem(STORAGE_KEY, '1');
-        try { window.parent.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) {}
-        setTimeout(function() { overlay.style.display = 'none'; }, 650);
+      @keyframes introArrowDrop {
+        0% { transform: rotate(45deg) translateY(-4px); opacity: 0; }
+        60% { opacity: 1; }
+        100% { transform: rotate(45deg) translateY(4px); opacity: 0; }
       }
-
-      // Skip button
-      var skipBtn = D.getElementById('hvac-skip-btn');
-      if (skipBtn) skipBtn.addEventListener('click', dismiss);
-
-      // Dismiss on scroll (parent window)
-      window.parent.addEventListener('wheel', dismiss, { once: true });
-      window.parent.addEventListener('touchmove', dismiss, { once: true });
-
-      // Auto-dismiss when video ends
-      var vid = D.getElementById('hvac-intro-video');
-      if (vid) vid.addEventListener('ended', dismiss);
-
-      // Fallback: auto-dismiss after 12s
-      setTimeout(dismiss, 12000);
+      #hvac-intro-overlay {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background: #07131f;
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        transition: opacity 0.6s ease, visibility 0.6s ease;
+        overflow: hidden;
+      }
+      #hvac-intro-overlay.dismissed {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      #hvac-intro-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0; left: 0;
+      }
+      #hvac-scroll-hint {
+        position: absolute;
+        bottom: 36px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255,255,255,0.7);
+        font-family: 'DM Sans', sans-serif;
+        font-size: 13px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        animation: introFadeBounce 2s ease-in-out infinite;
+        z-index: 2;
+      }
+      .intro-scroll-arrow {
+        width: 20px; height: 20px;
+        border-right: 2px solid rgba(255,255,255,0.6);
+        border-bottom: 2px solid rgba(255,255,255,0.6);
+        transform: rotate(45deg);
+        animation: introArrowDrop 1.4s ease-in-out infinite;
+      }
+      #hvac-skip-btn {
+        position: absolute;
+        top: 24px; right: 32px;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.25);
+        color: white;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 13px;
+        padding: 7px 18px;
+        border-radius: 20px;
+        cursor: pointer;
+        z-index: 3;
+        transition: background 0.2s;
+      }
+      #hvac-skip-btn:hover { background: rgba(255,255,255,0.22); }
+    </style>
+    
+    <div id="hvac-intro-overlay">
+      <video
+        id="hvac-intro-video"
+        src="app/static/3dimage.mp4"
+        autoplay
+        muted
+        playsinline
+        preload="auto"
+      ></video>
+    
+      <div id="hvac-scroll-hint">
+        <span>Scroll to enter</span>
+        <div class="intro-scroll-arrow"></div>
+      </div>
+    
+      <button id="hvac-skip-btn">Skip ›</button>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    components.html("""
+    <script>
+    (function() {
+      function initIntro() {
+        try {
+          const D = window.parent.document;
+          const overlay = D.getElementById('hvac-intro-overlay');
+          if (!overlay) return; // Wait for it to render
+          
+          clearInterval(checkInterval);
+    
+          function dismiss() {
+            if (overlay.classList.contains('dismissed')) return;
+            overlay.classList.add('dismissed');
+            try { window.parent.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) {}
+            setTimeout(function() { overlay.style.display = 'none'; }, 650);
+          }
+    
+          // Skip button
+          var skipBtn = D.getElementById('hvac-skip-btn');
+          if (skipBtn) skipBtn.addEventListener('click', dismiss);
+    
+          // Dismiss on scroll (parent window)
+          window.parent.addEventListener('wheel', dismiss, { once: true });
+          window.parent.addEventListener('touchmove', dismiss, { once: true });
+    
+          // Auto-dismiss when video ends
+          var vid = D.getElementById('hvac-intro-video');
+          if (vid) vid.addEventListener('ended', dismiss);
+    
+          // Fallback: auto-dismiss after 12s
+          setTimeout(dismiss, 12000);
+          
+        } catch(e) {
+          console.error("Intro script error:", e);
+          clearInterval(checkInterval);
+        }
+      }
+    
+      var checkInterval = setInterval(initIntro, 100);
       
-    } catch(e) {
-      console.error("Intro script error:", e);
-      clearInterval(checkInterval);
-    }
-  }
-
-  // Check every 100ms until the overlay is in the DOM
-  var checkInterval = setInterval(initIntro, 100);
-  
-  // Safety fallback: if we never found it or script crashed, try to dismiss anything after 10s
-  setTimeout(function() {
-    try {
-      const overlay = window.parent.document.getElementById('hvac-intro-overlay');
-      if (overlay) overlay.style.display = 'none';
-      sessionStorage.setItem(STORAGE_KEY, '1');
-    } catch(e) {}
-  }, 10000);
-
-})();
-</script>
-""", height=0, width=0)
+      setTimeout(function() {
+        try {
+          const overlay = window.parent.document.getElementById('hvac-intro-overlay');
+          if (overlay) overlay.style.display = 'none';
+        } catch(e) {}
+      }, 10000);
+    })();
+    </script>
+    """, height=0, width=0)
+    
+    # Mark as played so it never renders again for this session
+    st.session_state.intro_played = True
 
 components.html("""
 <script>
