@@ -15,12 +15,12 @@ sys.path.insert(0, ROOT)
 st.set_page_config(page_title="HVAC Fault Detection System", page_icon="🔧", layout="wide", initial_sidebar_state="expanded")
 
 # ── Video Intro Splash Screen ───────────────────────────────────────────────
+import streamlit.components.v1 as components
+
 if "intro_played" not in st.session_state:
     st.session_state.intro_played = False
 
 if not st.session_state.intro_played:
-    import streamlit.components.v1 as components
-    
     st.markdown("""
     <style>
       @keyframes introFadeBounce {
