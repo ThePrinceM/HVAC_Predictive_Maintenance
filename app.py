@@ -17,8 +17,9 @@ st.set_page_config(page_title="HVAC Fault Detection System", page_icon="🔧", l
 # ── Video Intro Splash Screen ───────────────────────────────────────────────
 import streamlit.components.v1 as components
 
-# Part 1: Inject the overlay HTML + CSS directly into Streamlit's DOM
-# (st.markdown content lives in the main page, so position:fixed works)
+# ── Video Intro Splash Screen ───────────────────────────────────────────────
+import streamlit.components.v1 as components
+
 st.markdown("""
 <style>
   @keyframes introFadeBounce {
@@ -98,7 +99,7 @@ st.markdown("""
 <div id="hvac-intro-overlay">
   <video
     id="hvac-intro-video"
-    src="/app/static/3dimage.mp4"
+    src="app/static/3dimage.mp4"
     autoplay
     muted
     playsinline
@@ -114,47 +115,78 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Part 2: Tiny script (runs inside an iframe) that reaches into the parent
-# document to wire up dismiss logic for the overlay we injected above.
 components.html("""
 <script>
 (function() {
-  const D = window.parent.document;
   const STORAGE_KEY = 'hvac_intro_shown';
-  const overlay = D.getElementById('hvac-intro-overlay');
-  if (!overlay) return;
-
-  // If already shown this session, hide immediately
+  
+  // If already shown this session, hide immediately if we can find it
   if (sessionStorage.getItem(STORAGE_KEY)) {
-    overlay.style.display = 'none';
-    return;
+    try {
+      const overlay = window.parent.document.getElementById('hvac-intro-overlay');
+      if (overlay) overlay.style.display = 'none';
+    } catch(e) {}
   }
 
-  function dismiss() {
-    if (overlay.classList.contains('dismissed')) return;
-    overlay.classList.add('dismissed');
-    sessionStorage.setItem(STORAGE_KEY, '1');
-    window.parent.scrollTo({ top: 0, behavior: 'smooth' });
-    setTimeout(function() { overlay.style.display = 'none'; }, 650);
+  function initIntro() {
+    try {
+      const D = window.parent.document;
+      const overlay = D.getElementById('hvac-intro-overlay');
+      if (!overlay) return; // Wait for it to render
+      
+      // Stop the interval once found
+      clearInterval(checkInterval);
+
+      if (sessionStorage.getItem(STORAGE_KEY)) {
+        overlay.style.display = 'none';
+        return;
+      }
+
+      function dismiss() {
+        if (overlay.classList.contains('dismissed')) return;
+        overlay.classList.add('dismissed');
+        sessionStorage.setItem(STORAGE_KEY, '1');
+        try { window.parent.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) {}
+        setTimeout(function() { overlay.style.display = 'none'; }, 650);
+      }
+
+      // Skip button
+      var skipBtn = D.getElementById('hvac-skip-btn');
+      if (skipBtn) skipBtn.addEventListener('click', dismiss);
+
+      // Dismiss on scroll (parent window)
+      window.parent.addEventListener('wheel', dismiss, { once: true });
+      window.parent.addEventListener('touchmove', dismiss, { once: true });
+
+      // Auto-dismiss when video ends
+      var vid = D.getElementById('hvac-intro-video');
+      if (vid) vid.addEventListener('ended', dismiss);
+
+      // Fallback: auto-dismiss after 12s
+      setTimeout(dismiss, 12000);
+      
+    } catch(e) {
+      console.error("Intro script error:", e);
+      clearInterval(checkInterval);
+    }
   }
 
-  // Skip button
-  var skipBtn = D.getElementById('hvac-skip-btn');
-  if (skipBtn) skipBtn.addEventListener('click', dismiss);
+  // Check every 100ms until the overlay is in the DOM
+  var checkInterval = setInterval(initIntro, 100);
+  
+  // Safety fallback: if we never found it or script crashed, try to dismiss anything after 10s
+  setTimeout(function() {
+    try {
+      const overlay = window.parent.document.getElementById('hvac-intro-overlay');
+      if (overlay) overlay.style.display = 'none';
+      sessionStorage.setItem(STORAGE_KEY, '1');
+    } catch(e) {}
+  }, 10000);
 
-  // Dismiss on scroll (parent window)
-  window.parent.addEventListener('wheel', dismiss, { once: true });
-  window.parent.addEventListener('touchmove', dismiss, { once: true });
-
-  // Auto-dismiss when video ends
-  var vid = D.getElementById('hvac-intro-video');
-  if (vid) vid.addEventListener('ended', dismiss);
-
-  // Fallback: auto-dismiss after 12s
-  setTimeout(dismiss, 12000);
 })();
 </script>
 """, height=0, width=0)
+
 
 from utils.simulator import SensorSimulator
 from utils.visualizations import (
