@@ -575,7 +575,7 @@ def asset_data_uri(path, mime="image/png"):
     except Exception:
         return ""
 
-RTU_IMAGE_URI = asset_data_uri(os.path.join(os.path.dirname(ROOT), "rtu.png"))
+RTU_IMAGE_URI = asset_data_uri(os.path.join(ROOT, "static", "3dimage.png"))
 
 # ── Active Nav CSS Injection ────────────────────────────────────────────────
 nav_items = ["dashboard", "live_monitor", "predictions", "alerts", "history", "training", "ai_insights", "settings"]
