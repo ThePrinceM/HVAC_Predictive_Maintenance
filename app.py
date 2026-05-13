@@ -187,6 +187,113 @@ components.html("""
 </script>
 """, height=0, width=0)
 
+components.html("""
+<script>
+(function() {
+    // 1. Time Update
+    setInterval(() => {
+        try {
+            const doc = window.parent.document;
+            const now = new Date();
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const d = now.getDate().toString().padStart(2, '0');
+            const m = months[now.getMonth()];
+            const y = now.getFullYear();
+            const dateStr = `${d} ${m} ${y}`;
+
+            let h = now.getHours();
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12;
+            h = h ? h : 12;
+            const hStr = h.toString().padStart(2, '0');
+            const minStr = now.getMinutes().toString().padStart(2, '0');
+            const secStr = now.getSeconds().toString().padStart(2, '0');
+            const timeStr = `${hStr}:${minStr}:${secStr} ${ampm}`;
+            
+            const nativeEl = doc.getElementById('live-time-native');
+            if (nativeEl) {
+                nativeEl.innerHTML = `<strong>${dateStr}</strong><br><span>${timeStr}</span>`;
+            }
+            
+            const bannerEl = doc.getElementById('live-time-banner');
+            if (bannerEl) {
+                bannerEl.innerHTML = `${dateStr}&nbsp;&nbsp;${timeStr}`;
+            }
+        } catch(e) {}
+    }, 1000);
+
+    // 2. Custom Hamburger
+    try {
+        const D = window.parent.document;
+        if (!D.getElementById('custom-hvac-hamburger')) {
+            const btn = D.createElement('button');
+            btn.id = 'custom-hvac-hamburger';
+            btn.innerHTML = '✕';
+            Object.assign(btn.style, {
+                position: 'fixed',
+                top: '12px',
+                left: '236px',
+                zIndex: '999999',
+                background: '#07131f',
+                color: '#2f8df5',
+                border: '1px solid #20364d',
+                borderRadius: '6px',
+                width: '40px',
+                height: '40px',
+                fontSize: '20px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'left 0.3s ease'
+            });
+            
+            let sidebarOpen = true; // Streamlit initial state is expanded
+            
+            btn.onclick = function() {
+                const sidebar = D.querySelector('[data-testid="stSidebar"]');
+                if (!sidebar) return;
+                
+                if (!sidebar.style.transition.includes('margin-left')) {
+                    sidebar.style.transition = 'margin-left 0.3s ease-in-out';
+                }
+                
+                sidebarOpen = !sidebarOpen;
+                
+                if (sidebarOpen) {
+                    sidebar.style.setProperty('margin-left', '0px', 'important');
+                    btn.innerHTML = '✕';
+                    btn.style.left = '236px';
+                } else {
+                    sidebar.style.setProperty('margin-left', '-220px', 'important');
+                    btn.innerHTML = '☰';
+                    btn.style.left = '16px';
+                }
+            };
+            
+            D.body.appendChild(btn);
+            
+            // Force state continuously in case Streamlit re-renders elements
+            setInterval(function() {
+                const sidebar = D.querySelector('[data-testid="stSidebar"]');
+                if (sidebar) {
+                    if (sidebarOpen) {
+                        sidebar.style.setProperty('margin-left', '0px', 'important');
+                        if (btn.innerHTML !== '✕') btn.innerHTML = '✕';
+                        if (btn.style.left !== '236px') btn.style.left = '236px';
+                    } else {
+                        sidebar.style.setProperty('margin-left', '-220px', 'important');
+                        if (btn.innerHTML !== '☰') btn.innerHTML = '☰';
+                        if (btn.style.left !== '16px') btn.style.left = '16px';
+                    }
+                }
+            }, 100);
+        }
+    } catch(e) {}
+})();
+</script>
+""", height=0, width=0)
+
 
 from utils.simulator import SensorSimulator
 from utils.visualizations import (
@@ -214,7 +321,7 @@ div[data-testid="stStatusWidget"] { display: none !important; }
 .stDeployButton { display: none !important; }
 /* Push content to very top & fill full width */
 .main .block-container {
-  padding-top: 0.5rem !important;
+  padding-top: 0 !important;
   margin-top: 0 !important;
   padding-left: 1rem !important;
   padding-right: 1rem !important;
@@ -231,6 +338,11 @@ div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] { gap: 0
 /* Tighten plotly chart containers */
 div[data-testid="stPlotlyChart"] { margin-top: 0 !important; margin-bottom: 0 !important; }
 div[data-testid="stPlotlyChart"] > div { margin: 0 !important; padding: 0 !important; }
+
+/* Native title overrides to remove default h1 margins */
+.native-title-main { margin: 0 !important; padding: 0 !important; font-family: 'Barlow', sans-serif !important; font-size: 1.6rem !important; color: #dce8f5 !important; font-weight: 700 !important; }
+.native-title-sub { margin: 0 !important; padding: 0 !important; font-family: 'DM Sans', sans-serif !important; font-size: 0.85rem !important; color: #6b8299 !important; }
+
 .stApp{background:linear-gradient(135deg,#0b0f1a 0%,#0f1623 50%,#0b0f1a 100%)}
 section[data-testid="stSidebar"]{background:#080d18 !important;border-right:1px solid #1c2e47;}
 section[data-testid="stSidebar"] p, section[data-testid="stSidebar"] h1, section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] * {
@@ -269,11 +381,15 @@ section[data-testid="stSidebar"] .stButton > button {
   box-shadow: none !important;
   color: #a8bcd4 !important;
   justify-content: flex-start !important;
+  text-align: left !important;
   padding: 10px 16px !important;
   border-radius: 8px !important;
   font-size: 0.95rem !important;
   font-weight: 500 !important;
   transition: all 0.2s ease !important;
+}
+section[data-testid="stSidebar"] .stButton > button * {
+  white-space: nowrap !important;
 }
 section[data-testid="stSidebar"] .stButton > button:hover {
   background: rgba(59,158,255,0.08) !important;
@@ -343,14 +459,14 @@ st.markdown("""<style>
 footer, #MainMenu, header[data-testid="stHeader"], .stDeployButton {display:none !important;}
 
 .stApp {background:#07131f !important;color:var(--hvac-text);}
-.block-container {max-width:100% !important;width:100% !important;padding:0.5rem 1rem 10px 1rem !important;margin-top:0 !important;}
+.block-container {max-width:100% !important;width:100% !important;padding:0 1rem 10px 1rem !important;margin-top:0 !important;}
 div[data-testid="stToolbar"], [data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"], div[data-testid="stDecoration"], div[data-testid="stStatusWidget"] {display:none !important; color: transparent !important; opacity: 0 !important;}
 section[data-testid="stSidebar"] {
   background:#07131f !important;border-right:1px solid #1b324a !important;
   width:220px !important;min-width:200px !important;max-width:220px !important;
-  transform: none !important;
   visibility: visible !important;
   display: block !important;
+  transform: none !important;
 }
 section[data-testid="stSidebar"] + div { margin-left: 0 !important; padding-left: 0 !important; }
 .carrier-logo {
@@ -437,11 +553,11 @@ section[data-testid="stSidebar"] + div { margin-left: 0 !important; padding-left
 .action-line {display:flex;gap:9px;align-items:center;color:white;font:500 13px 'DM Sans',sans-serif;margin:7px 0;}
 .check {width:18px;height:18px;border-radius:50%;background:#5bd869;color:white;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;}
 .maint-grid {display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:7px;}
-.maint-cell {min-height:82px;border:1px solid #20364d;border-radius:7px;background:#0d1b2b;display:grid;grid-template-columns:52px 1fr;align-items:center;padding:8px 10px;overflow:hidden;}
-.maint-icon {font-size:32px;text-align:center;}
-.maint-label {font:700 11px 'Barlow',sans-serif;color:white;text-transform:uppercase;margin:0;}
-.maint-value {font:800 18px 'Barlow',sans-serif;color:white;margin:5px 0 1px;}
-.maint-sub {font:500 12px 'DM Sans',sans-serif;color:#a8bacb;margin:0;}
+.maint-cell {min-height:82px;border:1px solid #20364d;border-radius:7px;background:#0d1b2b;display:grid;grid-template-columns:36px 1fr;align-items:center;padding:8px 8px;overflow:hidden;gap:8px;}
+.maint-icon {font-size:26px;text-align:center;}
+.maint-label {font:700 10px/1.2 'Barlow',sans-serif;color:white;text-transform:uppercase;margin:0;white-space:normal;word-wrap:break-word;}
+.maint-value {font:800 15px/1.2 'Barlow',sans-serif;color:white;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.maint-sub {font:500 11px/1.2 'DM Sans',sans-serif;color:#a8bacb;margin:0;white-space:normal;word-wrap:break-word;}
 .airflow-svg text {font-family:'Barlow',sans-serif;font-weight:800;}
 @media (max-width:1200px){
   .kpi-grid,.row-a,.row-b,.row-c,.topbar {grid-template-columns:1fr;}
@@ -505,14 +621,14 @@ with st.sidebar:
                 pass
             st.rerun()
 
-    sidebar_nav("Home  Dashboard", "dashboard")
-    sidebar_nav("Clock  Live Monitor", "live_monitor")
-    sidebar_nav("Gauge  Predictions", "predictions")
-    sidebar_nav("Bell  Alerts", "alerts")
-    sidebar_nav("History", "history")
-    sidebar_nav("Reports", "training")
-    sidebar_nav("AI Insights", "ai_insights")
-    sidebar_nav("Settings", "settings")
+    sidebar_nav("🏠 Dashboard", "dashboard")
+    sidebar_nav("🕐 Live Monitor", "live_monitor")
+    sidebar_nav("📊 Predictions", "predictions")
+    sidebar_nav("🔔 Alerts", "alerts")
+    sidebar_nav("📈 History", "history")
+    sidebar_nav("📋 Reports", "training")
+    sidebar_nav("🤖 AI Insights", "ai_insights")
+    sidebar_nav("⚙️ Settings", "settings")
 
     st.markdown('<div style="height:30px"></div>', unsafe_allow_html=True)
 
@@ -530,7 +646,7 @@ if st.session_state.active_page not in ["dashboard", "live_monitor"]:
         st.markdown('<div><p class="header-title">ROOFTOP UNIT (RTU) DASHBOARD</p><p class="header-sub">AI Based Predictive Maintenance System</p></div>', unsafe_allow_html=True)
     with h2:
         badge_html = '<span class="online-badge"><span class="pulse-dot"></span>ONLINE</span>' if model_exists else '<span class="offline-badge">⚫ STANDBY</span>'
-        st.markdown(f'<div style="display:flex;align-items:center;gap:12px;justify-content:flex-end;padding-top:6px">{badge_html}<span style="color:#6b8299;font-family:DM Sans,sans-serif;font-size:0.85rem">{now.strftime("%d %b %Y")}&nbsp;&nbsp;{now.strftime("%I:%M:%S %p")}</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="display:flex;align-items:center;gap:12px;justify-content:flex-end;padding-top:6px">{badge_html}<span id="live-time-banner" style="color:#6b8299;font-family:DM Sans,sans-serif;font-size:0.85rem">{now.strftime("%d %b %Y")}&nbsp;&nbsp;{now.strftime("%I:%M:%S %p")}</span></div>', unsafe_allow_html=True)
     with h3:
         st.selectbox("Unit", ["RTU-01", "RTU-02", "RTU-03"], label_visibility="collapsed")
 # ── KPI & SVG Helpers ────────────────────────────────────────────────────────
@@ -664,7 +780,7 @@ def _render_native_topbar(title, subtitle, status_text="ONLINE"):
         st.markdown(f'<div class="native-status">{badge}</div>', unsafe_allow_html=True)
     with c3:
         current = datetime.datetime.now()
-        st.markdown(f'<div class="native-date"><div class="calendar-icon">&#128197;</div><div><strong>{current.strftime("%d %b %Y")}</strong><br><span>{current.strftime("%I:%M:%S %p")}</span></div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="native-date"><div class="calendar-icon">&#128197;</div><div id="live-time-native"><strong>{current.strftime("%d %b %Y")}</strong><br><span>{current.strftime("%I:%M:%S %p")}</span></div></div>', unsafe_allow_html=True)
     with c4:
         st.markdown('<div class="rtu-control">', unsafe_allow_html=True)
         st.selectbox("Unit", ["RTU-01", "RTU-02", "RTU-03"], key="selected_unit", label_visibility="collapsed")
@@ -710,8 +826,6 @@ def _trend_svg(buffer_df, width=560, height=168):
         if col not in vals_df:
             continue
         vals = vals_df[col].astype(float).tolist()
-        if col == "airflow_rate":
-            vals = [v * 8 for v in vals]
         mn, mx = min(vals), max(vals)
         span = mx - mn if mx != mn else 1
         pts = []
@@ -721,10 +835,10 @@ def _trend_svg(buffer_df, width=560, height=168):
             pts.append(f"{x:.1f},{y:.1f}")
         rows.append(f'<polyline points="{" ".join(pts)}" fill="none" stroke="{color}" stroke-width="2" stroke-linejoin="round"/>')
     legend = ''.join([
-        '<line x1="74" y1="14" x2="88" y2="14" stroke="#2f8df5" stroke-width="3"/><text x="94" y="18" fill="white" font-size="11">Supply Air Temp (&deg;C)</text>',
-        '<line x1="214" y1="14" x2="228" y2="14" stroke="#54d764" stroke-width="3"/><text x="234" y="18" fill="white" font-size="11">Return Air Temp (&deg;C)</text>',
-        '<line x1="356" y1="14" x2="370" y2="14" stroke="#ff4d4d" stroke-width="3"/><text x="376" y="18" fill="white" font-size="11">Compressor Current (A)</text>',
-        '<line x1="74" y1="154" x2="88" y2="154" stroke="#ffae1a" stroke-width="3"/><text x="94" y="158" fill="white" font-size="11">Airflow (CFM)</text>',
+        '<line x1="10" y1="14" x2="24" y2="14" stroke="#2f8df5" stroke-width="3"/><text x="30" y="18" fill="white" font-size="11">Supply Air Temp (&deg;C)</text>',
+        '<line x1="160" y1="14" x2="174" y2="14" stroke="#54d764" stroke-width="3"/><text x="180" y="18" fill="white" font-size="11">Return Air Temp (&deg;C)</text>',
+        '<line x1="310" y1="14" x2="324" y2="14" stroke="#ff4d4d" stroke-width="3"/><text x="330" y="18" fill="white" font-size="11">Compressor Current (A)</text>',
+        '<line x1="470" y1="14" x2="484" y2="14" stroke="#ffae1a" stroke-width="3"/><text x="490" y="18" fill="white" font-size="11">Airflow (CFM)</text>',
     ])
     # ── Real-time X-axis labels from actual data timestamps ──
     tick_labels = []
@@ -885,18 +999,15 @@ def render_dashboard_content():
     component = FAULT_COMPONENT.get(predicted_class, predicted_class.replace("_", " "))
     uptime_delta = datetime.datetime.now() - st.session_state.session_start_time
     uptime_pct = min(99.9, 98.6 + uptime_delta.total_seconds() / 360000)
-    alert_count = len(st.session_state.alert_log) or 5
+    alert_count = len(st.session_state.alert_log)
     # ── Dynamic maintenance dates (14-day cycle) ──
-    _maint_epoch = datetime.date(2025, 1, 6)  # Monday anchor
-    _today = datetime.date.today()
-    _days_since = (_today - _maint_epoch).days
-    _cycle_pos = _days_since % 14
-    _last_maint = _today - datetime.timedelta(days=_cycle_pos)
-    _next_maint = _last_maint + datetime.timedelta(days=14)
+    now_dt = datetime.datetime.now()
+    _last_maint = now_dt - datetime.timedelta(days=7)
+    _next_maint = now_dt + datetime.timedelta(days=7)
     last_maint_str = _last_maint.strftime("%d %b %Y")
     next_maint_str = _next_maint.strftime("%d %b %Y")
-    last_maint_ago_str = f"{_cycle_pos} Day{'s' if _cycle_pos != 1 else ''} Ago"
-    next_maint_in_str = f"In {14 - _cycle_pos} Day{'s' if (14 - _cycle_pos) != 1 else ''}"
+    last_maint_ago_str = "7 Days Ago"
+    next_maint_in_str = "In 7 Days"
     trend = _trend_svg(buffer_df)
     airflow = _airflow_svg(reading, predicted_class)
     gauge = _gauge_svg(risk_pct, risk_label, risk_color)
