@@ -31,7 +31,8 @@ SEVERITY_ICONS = {"critical": "\U0001f534", "warning": "\u26a0\ufe0f", "info": "
 def evaluate_alerts(reading: dict) -> List[dict]:
     """Check all rules against a sensor reading. Return list of triggered alerts."""
     triggered = []
-    now = datetime.datetime.now().strftime("%I:%M %p")
+    tz_ist = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+    now = datetime.datetime.now(tz_ist).strftime("%I:%M %p")
     for rule in ALERT_RULES:
         try:
             if rule["condition"](reading):
