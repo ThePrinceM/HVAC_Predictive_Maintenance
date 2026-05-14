@@ -202,6 +202,22 @@ components.html("""
             if (bannerEl) {
                 bannerEl.innerHTML = `${dateStr}&nbsp;&nbsp;${timeStr}`;
             }
+
+            // Sync Dashboard Parameter Trends (Last 24 Hours) X-axis with the clock
+            const trendTicks = doc.querySelectorAll('.trend-label-dash');
+            if (trendTicks.length === 7) {
+                for (let i = 0; i < 7; i++) {
+                    const offsetHours = 24 - (i * 4);
+                    const t = new Date(now.getTime() - offsetHours * 60 * 60 * 1000);
+                    let th = t.getHours();
+                    const tampm = th >= 12 ? 'PM' : 'AM';
+                    th = th % 12;
+                    th = th ? th : 12;
+                    const hStr2 = th.toString().padStart(2, '0');
+                    const minStr2 = t.getMinutes().toString().padStart(2, '0');
+                    trendTicks[i].textContent = `${hStr2}:${minStr2} ${tampm}`;
+                }
+            }
         } catch(e) {}
     }, 1000);
 
@@ -789,7 +805,7 @@ def _spark_svg(values, color, width=210, height=34):
     r, g, b = _rgb(color)
     return f'<svg class="sparkline" viewBox="0 0 {width} {height}" preserveAspectRatio="none"><polygon points="{area}" fill="rgba({r},{g},{b},0.18)"/><polyline points="{line}" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
-def _trend_svg(buffer_df, width=560, height=168):
+def _trend_svg(buffer_df, width=560, height=168, is_live=False):
     series = [
         ("supply_temp_C", "#2f8df5"),
         ("return_temp_C", "#54d764"),
@@ -825,7 +841,8 @@ def _trend_svg(buffer_df, width=560, height=168):
     ])
     # ── Real-time X-axis labels from actual data timestamps ──
     tick_labels = []
-    if not vals_df.empty and "timestamp_str" in vals_df.columns:
+    tick_class = ""
+    if is_live and not vals_df.empty and "timestamp_str" in vals_df.columns:
         ts_list = vals_df["timestamp_str"].tolist()
         n_ticks = 7
         step = max(1, (len(ts_list) - 1) // (n_ticks - 1))
@@ -840,12 +857,14 @@ def _trend_svg(buffer_df, width=560, height=168):
                 short = raw
             tick_labels.append(short)
     else:
-        # Fallback: generate labels from current time minus 24h
+        # Dashboard: generate 24h labels and tag for JS dynamic updating
         _now = datetime.datetime.now()
+        tick_class = "trend-label-dash"
         for i in range(7):
             t = _now - datetime.timedelta(hours=24 - i * 4)
             tick_labels.append(t.strftime("%I:%M %p"))
-    ticks = ''.join(f'<text x="{chart_left+i*(chart_w/6):.1f}" y="{height-5}" fill="#dce8f5" font-size="11" text-anchor="middle">{label}</text>' for i, label in enumerate(tick_labels))
+    
+    ticks = ''.join(f'<text x="{chart_left+i*(chart_w/6):.1f}" y="{height-5}" fill="#dce8f5" font-size="11" text-anchor="middle" class="{tick_class}">{label}</text>' for i, label in enumerate(tick_labels))
     return f'<svg viewBox="0 0 {width} {height}" style="width:100%;height:190px">{legend}{"".join(rows)}{ticks}</svg>'
 
 def _gauge_svg(risk_pct, risk_label, risk_color):
@@ -1045,7 +1064,7 @@ def render_live_monitor_content():
     else:
         table_html = '<div style="color:#93a9bd;font:600 14px DM Sans,sans-serif;padding:20px">Collecting live readings...</div>'
 
-    trend = _trend_svg(buffer_df, width=760, height=210)
+    trend = _trend_svg(buffer_df, width=760, height=210, is_live=True)
     filter_pct = float(reading.get("filter_health", 1)) * 100
     airflow = _airflow_svg(reading, reading.get("fault", "Normal"))
     _render_native_topbar("LIVE MONITOR", "Real-time RTU sensor stream and component health", "ONLINE" if st.session_state.streaming else "PAUSED")
