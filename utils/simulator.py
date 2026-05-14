@@ -91,7 +91,8 @@ class SensorSimulator:
 
         # Add metadata
         reading["fault"] = fault_label
-        reading["timestamp_str"] = datetime.datetime.now().strftime("%I:%M:%S %p")
+        tz_ist = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+        reading["timestamp_str"] = datetime.datetime.now(tz_ist).strftime("%I:%M:%S %p")
         reading["tick"] = self._tick
 
         self._buffer.append(reading)

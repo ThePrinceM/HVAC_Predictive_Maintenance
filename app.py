@@ -203,19 +203,20 @@ components.html("""
                 bannerEl.innerHTML = `${dateStr}&nbsp;&nbsp;${timeStr}`;
             }
 
-            // Sync Dashboard Parameter Trends (Last 24 Hours) X-axis with the clock
+            // Sync Dashboard Parameter Trends X-axis with the clock (~104 seconds span)
             const trendTicks = doc.querySelectorAll('.trend-label-dash');
             if (trendTicks.length === 7) {
                 for (let i = 0; i < 7; i++) {
-                    const offsetHours = 24 - (i * 4);
-                    const t = new Date(now.getTime() - offsetHours * 60 * 60 * 1000);
+                    const offsetSeconds = (6 - i) * 17.33;
+                    const t = new Date(now.getTime() - offsetSeconds * 1000);
                     let th = t.getHours();
                     const tampm = th >= 12 ? 'PM' : 'AM';
                     th = th % 12;
                     th = th ? th : 12;
                     const hStr2 = th.toString().padStart(2, '0');
                     const minStr2 = t.getMinutes().toString().padStart(2, '0');
-                    trendTicks[i].textContent = `${hStr2}:${minStr2} ${tampm}`;
+                    const secStr2 = t.getSeconds().toString().padStart(2, '0');
+                    trendTicks[i].textContent = `${hStr2}:${minStr2}:${secStr2} ${tampm}`;
                 }
             }
         } catch(e) {}
@@ -570,7 +571,7 @@ section[data-testid="stSidebar"] + div { margin-left: 0 !important; padding-left
 # ── Session State Init ──────────────────────────────────────────────────────
 if "simulator" not in st.session_state: st.session_state.simulator = SensorSimulator(mode="auto")
 if "alert_log" not in st.session_state: st.session_state.alert_log = collections.deque(maxlen=50)
-if "session_start_time" not in st.session_state: st.session_state.session_start_time = datetime.datetime.now()
+if "session_start_time" not in st.session_state: st.session_state.session_start_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
 if "last_prediction" not in st.session_state: st.session_state.last_prediction = {"predicted_class": "Normal", "confidence": 0.0, "probabilities": {}}
 if "active_page" not in st.session_state: st.session_state.active_page = "dashboard"
 if "sim_interval" not in st.session_state: st.session_state.sim_interval = 2.0
@@ -638,7 +639,7 @@ with st.sidebar:
 MODEL_PATH = os.path.join(ROOT, "model", "model.pkl")
 model_exists = os.path.exists(MODEL_PATH)
 status = ("online", "ONLINE") if model_exists else ("offline", "STANDBY")
-now = datetime.datetime.now()
+now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
 if st.session_state.active_page not in ["dashboard", "live_monitor"]:
     h1, h2, h3 = st.columns([4, 3, 2])
     with h1:
@@ -778,7 +779,7 @@ def _render_native_topbar(title, subtitle, status_text="ONLINE"):
         badge = '<span class="online-badge"><span class="pulse-dot"></span>' + status_text + '</span>' if status_text == "ONLINE" else '<span class="offline-badge">⚫ ' + status_text + '</span>'
         st.markdown(f'<div class="native-status">{badge}</div>', unsafe_allow_html=True)
     with c3:
-        current = datetime.datetime.now()
+        current = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
         st.markdown(f'<div class="native-date"><div class="calendar-icon">&#128197;</div><div id="live-time-native"><strong>{current.strftime("%d %b %Y")}</strong><br><span>{current.strftime("%I:%M:%S %p")}</span></div></div>', unsafe_allow_html=True)
     with c4:
         st.markdown('<div class="rtu-control">', unsafe_allow_html=True)
@@ -857,12 +858,13 @@ def _trend_svg(buffer_df, width=560, height=168, is_live=False):
                 short = raw
             tick_labels.append(short)
     else:
-        # Dashboard: generate 24h labels and tag for JS dynamic updating
-        _now = datetime.datetime.now()
+        # Dashboard: generate 104s labels and tag for JS dynamic updating
+        _now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
         tick_class = "trend-label-dash"
         for i in range(7):
-            t = _now - datetime.timedelta(hours=24 - i * 4)
-            tick_labels.append(t.strftime("%I:%M %p"))
+            offset_seconds = (6 - i) * 17.33
+            t = _now - datetime.timedelta(seconds=offset_seconds)
+            tick_labels.append(t.strftime("%I:%M:%S %p"))
     
     ticks = ''.join(f'<text x="{chart_left+i*(chart_w/6):.1f}" y="{height-5}" fill="#dce8f5" font-size="11" text-anchor="middle" class="{tick_class}">{label}</text>' for i, label in enumerate(tick_labels))
     return f'<svg viewBox="0 0 {width} {height}" style="width:100%;height:190px">{legend}{"".join(rows)}{ticks}</svg>'
@@ -999,11 +1001,11 @@ def render_dashboard_content():
     actions = RECOMMENDED_ACTIONS.get(predicted_class, RECOMMENDED_ACTIONS["Normal"])
     actions_html = ''.join(f'<div class="action-line"><span class="check">&#10003;</span><span>{act}</span></div>' for act in actions[:4])
     component = FAULT_COMPONENT.get(predicted_class, predicted_class.replace("_", " "))
-    uptime_delta = datetime.datetime.now() - st.session_state.session_start_time
+    uptime_delta = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30))) - st.session_state.session_start_time
     uptime_pct = min(99.9, 98.6 + uptime_delta.total_seconds() / 360000)
     alert_count = len(st.session_state.alert_log)
     # ── Dynamic maintenance dates (14-day cycle) ──
-    now_dt = datetime.datetime.now()
+    now_dt = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
     _last_maint = now_dt - datetime.timedelta(days=7)
     _next_maint = now_dt + datetime.timedelta(days=7)
     last_maint_str = _last_maint.strftime("%d %b %Y")
