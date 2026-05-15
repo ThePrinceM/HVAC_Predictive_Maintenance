@@ -966,7 +966,7 @@ def render_dashboard_content():
         st.session_state.alert_log.append(a)
 
     risk_pct, risk_label, risk_color, confidence_pct = _risk_state(reading, pred, alerts)
-    ttf = "--" if risk_pct == 0 else "7 - 14 Days" if risk_pct < 50 else "3 - 7 Days" if risk_pct < 70 else "2 - 3 Days" if risk_pct < 85 else "1 - 2 Days"
+    ttf = "--" if risk_pct == 0 else "7 - 14 Days" if risk_pct < 50 else "3 - 7 Days" if risk_pct < 70 else "4 - 5 Days" if risk_pct < 85 else "3 - 4 Days"
     kpi_html = _kpi_strip_html(reading, buffer_df)
 
     mixed = (float(reading.get("outdoor_temp_C", 0)) + float(reading.get("return_temp_C", 0))) / 2
