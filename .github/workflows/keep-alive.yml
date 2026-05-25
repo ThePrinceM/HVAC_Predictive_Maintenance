@@ -1,0 +1,31 @@
+name: Keep Streamlit App Alive
+
+on:
+  schedule:
+    # Runs every 12 minutes to keep the Render free tier service active (15 min sleep limit)
+    - cron: '*/12 * * * *'
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+
+jobs:
+  ping-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit App
+        run: |
+          # Retrieve the app URL from GitHub Repository Secrets, or use the default placeholder below
+          APP_URL="${{ secrets.APP_URL }}"
+          
+          # If the secret is not set, we can define a fallback or exit with an instructions message
+          if [ -z "$APP_URL" ] || [ "$APP_URL" = "https://your-streamlit-app.onrender.com" ]; then
+            # EDIT THIS DEFAULT URL WITH YOUR ACTUAL DEPLOYED STREAMLIT APP URL IF NOT USING SECRETS:
+            APP_URL="https://your-streamlit-app.onrender.com"
+          fi
+          
+          if [ "$APP_URL" = "https://your-streamlit-app.onrender.com" ]; then
+            echo "::warning::The keep-alive URL is still set to the default placeholder. Please update it in the workflow file or add the APP_URL secret."
+            exit 0
+          fi
+          
+          echo "Pinging Streamlit app at: $APP_URL"
+          # Send a GET request to wake/keep the app alive, following redirects, with a 30s timeout
+          curl -sSL -o /dev/null -D - --max-time 30 "$APP_URL" | head -n 1
