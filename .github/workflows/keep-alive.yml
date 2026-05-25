@@ -2,8 +2,8 @@ name: Keep Streamlit App Alive
 
 on:
   schedule:
-    # Runs every 12 minutes to keep the Render free tier service active (15 min sleep limit)
-    - cron: '*/12 * * * *'
+    # Runs every 10 minutes to keep the Render free tier service active (15 min sleep limit)
+    - cron: '*/10 * * * *'
   workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
 
 jobs:
@@ -15,10 +15,9 @@ jobs:
           # Retrieve the app URL from GitHub Repository Secrets, or use the default placeholder below
           APP_URL="${{ secrets.APP_URL }}"
           
-          # If the secret is not set, we can define a fallback or exit with an instructions message
+          # If the secret is not set, use the actual Streamlit app URL
           if [ -z "$APP_URL" ] || [ "$APP_URL" = "https://your-streamlit-app.onrender.com" ]; then
-            # EDIT THIS DEFAULT URL WITH YOUR ACTUAL DEPLOYED STREAMLIT APP URL IF NOT USING SECRETS:
-            APP_URL="https://your-streamlit-app.onrender.com"
+            APP_URL="https://hvacpm.streamlit.app"
           fi
           
           if [ "$APP_URL" = "https://your-streamlit-app.onrender.com" ]; then
